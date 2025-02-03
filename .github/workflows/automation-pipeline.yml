@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Build and Deploy Spring Boot to AKS with ACR and ArgoCD
+name: CI/CD Pipeline - Build and Deploy Spring Boot to AKS with ACR and ArgoCD (SSH)
 
 on:
   push:
@@ -29,7 +29,7 @@ jobs:
       - name: Log in to Azure CLI
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}  # GitHub secret containing Azure Service Principal credentials
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       # ✅ 5. Log in to Azure Container Registry (ACR)
       - name: Log in to Azure Container Registry (ACR)
@@ -44,22 +44,23 @@ jobs:
       # ✅ 7. Update Kubernetes Deployment File with the New Image Tag
       - name: Update deployment.yaml with new image tag
         run: |
-          echo "Updating deployment.yaml with new image tag..."
           sed -i "s|image: .*.azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ github.sha }}|g" k8s-manifests/deployment.yaml
-          
-          echo "🔍 deployment.yaml after update:"
-          cat k8s-manifests/deployment.yaml
 
-      # ✅ 8. Commit and Push Changes to GitHub
-      - name: Commit and Push Changes
+      # ✅ 8. Commit and Push Changes Using SSH Authentication
+      - name: Commit and Push Changes via SSH
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}  # GitHub Personal Access Token (PAT)
+          GH_SSH_KEY: ${{ secrets.GH_SSH_KEY }}
         run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          mkdir -p ~/.ssh
+          echo "$GH_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-          # Authenticate using GH_PAT
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+          git config --global user.name "Ajay Pulapa"
+          git config --global user.email "apulapa@miraclesoft.com"
+
+          # Use SSH instead of HTTPS
+          git remote set-url origin git@github.com:AjayPulapa/springboot-argo-poc.git
 
           # Add and commit changes if there are any
           git add k8s-manifests/deployment.yaml
