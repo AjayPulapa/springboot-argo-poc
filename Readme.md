@@ -2,7 +2,7 @@
 
 2.docker run -p 3308:3306 --name mysqllcontainer -e MYSQL_ROOT_PASSWORD=apulapa -e MYSQL_USER=apulapa -e MYSQL_PASSWORD=apulapa -e MYSQL_DATABASE=users -d mysql
 
-3.docker build -t springboot-app .
+3.docker build -t springboot-app . 
 
 4.docker run -p 8090:8080 --name springcontainer -e MYSQL_HOST=mysqllcontainer -e MYSQL_PORT=3306 -e MYSQL_DB_NAME=users -e MYSQL_USER=apulapa -e MYSQL_PASSWORD=apulapa springboot-app
 
