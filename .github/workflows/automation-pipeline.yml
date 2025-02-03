@@ -51,11 +51,13 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "$GH_SSH_KEY" > ~/.ssh/id_rsa
-          chmod 777 ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa  # Set correct permissions for private key
           ssh-keyscan github.com >> ~/.ssh/known_hosts
 
           # Test SSH connection
           ssh -T git@github.com
+        env:
+          GH_SSH_KEY: ${{ secrets.GH_SSH_KEY }}  # SSH private key stored in GitHub Secrets
 
       # ✅ 9. Commit and Push Changes Using SSH Authentication
       - name: Commit and Push Changes via SSH
