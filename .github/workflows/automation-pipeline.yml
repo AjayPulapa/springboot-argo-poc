@@ -55,7 +55,7 @@ jobs:
           git remote set-url origin https://github.com/AjayPulapa/springboot-argo-poc.git
           # Configure the GitHub token for authentication
           git config --global credential.helper 'cache --timeout=3600'  # Cache credentials for an hour
-          echo "https://github.com:${{ secrets.GITHUB_TOKEN }}@github.com" > ~/.git-credentials
+          echo "https://github.com:${{ secrets.TOKEN_PAT }}@github.com" > ~/.git-credentials
           # Add and commit changes if there are any
           git add k8s-manifests/deployment.yaml
           if git diff --cached --quiet; then
