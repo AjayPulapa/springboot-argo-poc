@@ -48,7 +48,7 @@ jobs:
       # ✅ 8. Update Kubernetes Deployment YAML with the New Image Tag
       - name: Update deployment.yml with new image tag
         run: |
-          sed -i "s|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/deployment.yml
+          sed -i "s|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/deployment.yaml
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git commit -am "Updated deployment image to ${{ env.IMAGE_TAG }}"
