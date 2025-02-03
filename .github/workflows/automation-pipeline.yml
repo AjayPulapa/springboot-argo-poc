@@ -46,7 +46,18 @@ jobs:
         run: |
           sed -i "s|image: .*.azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ github.sha }}|g" k8s-manifests/deployment.yaml
 
-      # ✅ 8. Commit and Push Changes Using SSH Authentication
+      # ✅ 8. Test SSH connection to GitHub for Authentication
+      - name: Test SSH connection to GitHub
+        run: |
+          mkdir -p ~/.ssh
+          echo "$GH_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 777 ~/.ssh/id_rsa
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          # Test SSH connection
+          ssh -T git@github.com
+
+      # ✅ 9. Commit and Push Changes Using SSH Authentication
       - name: Commit and Push Changes via SSH
         env:
           GH_SSH_KEY: ${{ secrets.GH_SSH_KEY }}
@@ -69,9 +80,8 @@ jobs:
           else
             git commit -m "Updated deployment image to ${{ github.sha }}"
             git push origin main
-          fi
 
-      # ✅ 9. Trigger ArgoCD Sync to Apply the New Deployment
+      # ✅ 10. Trigger ArgoCD Sync to Apply the New Deployment
       - name: Trigger ArgoCD Sync
         run: |
           curl -X POST "http://argocd-server.<namespace>:8080/api/v1/applications/springboot-app/sync" \
