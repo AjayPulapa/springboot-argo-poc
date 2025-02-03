@@ -12,7 +12,7 @@ spring.datasource.username=${MYSQL_USER:root}
 spring.datasource.password=${MYSQL_PASSWORD:root}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 spring.jpa.hibernate.ddl-auto=update
-spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect
+spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect 
 
 
 MYSQL_ROOT_PASSWORD: Sets the root password for the MySQL instance.
