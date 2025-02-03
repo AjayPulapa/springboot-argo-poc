@@ -38,5 +38,5 @@ jobs:
       # ✅ 6. Build Docker Image and Push to ACR
       - name: Build Docker Image and Push to ACR
         run: |
-          docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ github.sha }} .
-          docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ github.sha }}
+          docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:v1 .
+          docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:v1
