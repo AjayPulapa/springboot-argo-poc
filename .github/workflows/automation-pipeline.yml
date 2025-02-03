@@ -89,16 +89,16 @@ jobs:
       - name: Debug - Print deployment.yaml After Update
         run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
 
-      # ✅ 13. Ensure Git Detects the Change & Commit
+      # ✅ 13. Ensure Git Detects the Change & Commit Using `GH_PAT`
       - name: Commit and Push Changes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git config --global user.name "Ajay Pulapa"
           git config --global user.email "apulapa@miraclesoft.com"
 
-          # Authenticate using GitHub Token
-          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+          # Authenticate using GitHub PAT
+          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
 
           # Add and commit changes if there are any
           git add k8s-manifests/deployment.yaml
