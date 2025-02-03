@@ -32,7 +32,7 @@ jobs:
 
       # Log in to Azure Container Registry (ACR)
       - name: Log in to ACR
-        run: az acr login --name azurespringbootcode
+        run: az acr login --name springbootargo
 
       # Generate a unique image tag
       - name: Set IMAGE_TAG
