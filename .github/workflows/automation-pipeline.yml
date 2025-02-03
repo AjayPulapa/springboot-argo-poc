@@ -91,14 +91,17 @@ jobs:
 
       # ✅ 13. Ensure Git Detects the Change & Commit
       - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
+          git config --global user.name "Ajay Pulapa"
+          git config --global user.email "apulapa@miraclesoft.com"
 
-          # Force Git to detect the modified file
+          # Authenticate using GitHub Token
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
+
+          # Add and commit changes if there are any
           git add k8s-manifests/deployment.yaml
-
-          # Check if there are changes before committing
           if git diff --cached --quiet; then
             echo "⚠️ No changes detected in deployment.yaml. Skipping commit."
           else
