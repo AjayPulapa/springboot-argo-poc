@@ -52,7 +52,6 @@ jobs:
           git config --global user.name "Ajay Pulapa"
           git config --global user.email "apulapa@miraclesoft.com"
           # Use HTTPS instead of SSH
-          git remote add origin https://github.com/AjayPulapa/springboot-argo-poc.git
           # Add and commit changes if there are any
           git add k8s-manifests/deployment.yaml
           if git diff --cached --quiet; then
