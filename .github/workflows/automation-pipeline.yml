@@ -1,9 +1,9 @@
-name: CI/CD Pipeline - Build and Deploy Spring Boot to AKS
+name: CI/CD Pipeline - Build and Deploy Spring Boot to AKS with ACR and ArgoCD
 
 on:
   push:
     branches:
-      - main  # Runs when changes are pushed to main
+      - main  # Trigger this pipeline on changes to the 'main' branch
 
 jobs:
   build-and-deploy:
@@ -14,90 +14,51 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # ✅ 2. Debug - List All Files Before Processing
-      - name: Debug - List All Files Before Processing
-        run: ls -R
-
-      # ✅ 3. Verify if `deployment.yaml` exists
-      - name: Debug - Check if deployment.yaml Exists
-        run: |
-          if [ -f "k8s-manifests/deployment.yaml" ]; then
-            echo "✅ deployment.yaml found."
-          else
-            echo "❌ deployment.yaml NOT found!"
-            exit 1
-          fi
-
-      # ✅ 4. Print deployment.yaml BEFORE modification
-      - name: Debug - Print deployment.yaml Before Update
-        run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
-
-      # ✅ 5. Set up JDK 17 for Maven build
-      - name: Set Up JDK 17
+      # ✅ 2. Set up Java with JDK 17 for Maven
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # ✅ 6. Build the Spring Boot application JAR
+      # ✅ 3. Build the Spring Boot Application
       - name: Build Spring Boot JAR
         run: mvn clean install -DskipTests
 
-      # ✅ 7. Log in to Azure
-      - name: Log in to Azure
+      # ✅ 4. Log in to Azure CLI
+      - name: Log in to Azure CLI
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}  # GitHub secret containing Azure Service Principal credentials
 
-      # ✅ 8. Log in to Azure Container Registry (ACR)
-      - name: Log in to ACR
+      # ✅ 5. Log in to Azure Container Registry (ACR)
+      - name: Log in to Azure Container Registry (ACR)
         run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
 
-      # ✅ 9. Generate a unique image tag
-      - name: Set IMAGE_TAG
-        run: echo "IMAGE_TAG=$(date +%s)" >> $GITHUB_ENV
-
-      # ✅ 10. Build and Push Docker Image
-      - name: Build and Push Docker Image
+      # ✅ 6. Build Docker Image and Push to ACR
+      - name: Build Docker Image and Push to ACR
         run: |
-          docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }} .
-          docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}
+          docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ github.sha }} .
+          docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ github.sha }}
 
-      # ✅ 11. Update Kubernetes deployment.yaml with the new image tag
+      # ✅ 7. Update Kubernetes Deployment File with the New Image Tag
       - name: Update deployment.yaml with new image tag
         run: |
-          echo "✅ Checking if deployment.yaml exists..."
-          if [ -f "k8s-manifests/deployment.yaml" ]; then
-            echo "✅ deployment.yaml found. Updating image tag..."
-            
-            echo "🔍 Before Update:"
-            cat k8s-manifests/deployment.yaml
-            
-            # Apply sed to update the image tag
-            sed -i "s|image: .*.azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/deployment.yaml
-            
-            echo "🔍 After Update:"
-            cat k8s-manifests/deployment.yaml
-            
-            echo "✅ Successfully updated deployment.yaml"
-          else
-            echo "❌ deployment.yaml NOT found. Exiting..."
-            exit 1
-          fi
+          echo "Updating deployment.yaml with new image tag..."
+          sed -i "s|image: .*.azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ github.sha }}|g" k8s-manifests/deployment.yaml
+          
+          echo "🔍 deployment.yaml after update:"
+          cat k8s-manifests/deployment.yaml
 
-      # ✅ 12. Print deployment.yaml AFTER modification
-      - name: Debug - Print deployment.yaml After Update
-        run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
-
-      # ✅ 13. Ensure Git Detects the Change & Commit Using `GH_PAT`
+      # ✅ 8. Commit and Push Changes to GitHub
       - name: Commit and Push Changes
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ secrets.GH_PAT }}  # GitHub Personal Access Token (PAT)
         run: |
-          git config --global user.name "Ajay Pulapa"
-          git config --global user.email "apulapa@miraclesoft.com"
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
 
-          # Authenticate using GitHub PAT
+          # Authenticate using GH_PAT
           git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
 
           # Add and commit changes if there are any
@@ -105,12 +66,12 @@ jobs:
           if git diff --cached --quiet; then
             echo "⚠️ No changes detected in deployment.yaml. Skipping commit."
           else
-            git commit -m "Updated deployment image to ${{ env.IMAGE_TAG }}"
+            git commit -m "Updated deployment image to ${{ github.sha }}"
             git push origin main
           fi
 
-      # ✅ 14. Trigger ArgoCD Sync
+      # ✅ 9. Trigger ArgoCD Sync to Apply the New Deployment
       - name: Trigger ArgoCD Sync
         run: |
-          curl -X POST http://argocd-server.<namespace>:8080/api/v1/applications/springboot-app/sync \
-            -H "Authorization: Bearer ${{ secrets.ARGOCD_AUTH_TOKEN }}"
+          curl -X POST "http://argocd-server.<namespace>:8080/api/v1/applications/springboot-app/sync" \
+            -H "Authorization: Bearer ${{ secrets.ARGOCD_AUTH_TOKEN }}"  # ArgoCD API token
