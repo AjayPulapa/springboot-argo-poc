@@ -82,4 +82,4 @@ jobs:
             echo "🔍 After Update:"
             cat k8s-manifests/deployment.yaml
             
-            echo "✅ Successfully updated deployment.
+            echo "✅ Successfully updated deployment."
