@@ -58,7 +58,7 @@ jobs:
 
       # ✅ 9. Generate a unique image tag (Timestamp + Commit SHA)
       - name: Set IMAGE_TAG
-        run: echo "IMAGE_TAG=$(date +%s)-${{ github.sha }}" >> $GITHUB_ENV
+        run: echo "IMAGE_TAG=$(shuf -zer -n6 {A..Z} {a..z} {0..9} | tr -d '\0')-$(echo ${{ github.sha }} | cut -c1-4)" >> $GITHUB_ENV
 
       # ✅ 10. Build and Push Docker Image
       - name: Build and Push Docker Image
