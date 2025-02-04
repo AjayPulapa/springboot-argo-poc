@@ -72,25 +72,35 @@ jobs:
           az aks install-cli
           az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_AKS_CLUSTER }} --overwrite-existing
 
-      # ✅ 7. Apply Kubernetes manifests to sync changes to ArgoCD
-      - name: Apply Kubernetes Manifests
+      # ✅ 7. Clone or Pull Latest Changes & Apply Kubernetes manifests (ONLY IF CHANGES ARE MADE)
+      - name: Clone or Pull Latest Changes & Apply Manifests
         run: |
-          echo "🚀 Applying manifests to AKS..."
-          kubectl apply -f k8s-manifests/ -n springboot
-          echo "✅ Manifests applied successfully."
+          echo "🚀 Checking for latest Kubernetes manifests..."
+          
+          REPO_DIR="/home/runner/work/${{ github.repository }}/${{ github.repository }}"
+
+          if [ -d "$REPO_DIR" ]; then
+            echo "✅ Repository already exists. Pulling latest changes..."
+            cd "$REPO_DIR"
+            git fetch origin main
+            git reset --hard origin/main
+          else
+            echo "🚀 Repository not found. Cloning..."
+            git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git "$REPO_DIR"
+            cd "$REPO_DIR"
+          fi
+
+          # Check if any files in `k8s-manifests/` have changed
+          if git diff --quiet HEAD~1 -- k8s-manifests/; then
+            echo "⚠️ No changes detected in Kubernetes manifests. Skipping apply."
+          else
+            echo "✅ Changes detected. Applying Kubernetes manifests..."
+            kubectl apply -f k8s-manifests/ -n springboot
+            echo "🔹 IMAGE_TAG used for deployment: ${{ env.IMAGE_TAG }}"
+          fi
 
       # ✅ 8. Get Kubernetes service details (Optional)
       - name: Get Service Details
         run: |
           echo "🔍 Checking service status in springboot namespace..."
           kubectl get svc -n springboot
-
-      # ✅ 9. Trigger ArgoCD Sync
-      - name: Trigger ArgoCD Sync
-        run: |
-          echo "🚀 Triggering ArgoCD sync..."
-          curl -X POST "https://argocd.example.com/api/v1/applications/springboot-app/sync" \
-            -H "Authorization: Bearer ${{ secrets.ARGOCD_AUTH_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{}'
-          echo "✅ ArgoCD sync triggered successfully."
