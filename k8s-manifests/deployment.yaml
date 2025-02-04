@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: springboot
-        image: springbootargo.azurecr.io/springboot-argo:cfFmIH-dc3d
+        image: springbootargo.azurecr.io/springboot-argo:WogllK-7b53
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
