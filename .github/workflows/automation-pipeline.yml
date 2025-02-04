@@ -83,3 +83,35 @@ jobs:
             cat k8s-manifests/deployment.yaml
             
             echo "✅ Successfully updated deployment."
+          else
+            echo "❌ deployment.yaml NOT found. Exiting..."
+            exit 1
+          fi
+
+      # ✅ 12. Print deployment.yaml AFTER modification
+      - name: Debug - Print deployment.yaml After Update
+        run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
+
+      # ✅ 13. Ensure Git Detects the Change & Commit
+      - name: Commit and Push Changes
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git config --global user.name "Ajay Pulapa"
+          git config --global user.email "ajaypulapa@gmail.com"
+          git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
+          git add k8s-manifests/deployment.yaml
+          if git diff --cached --quiet; then
+            echo "⚠️ No changes detected in deployment.yaml. Skipping commit."
+          else
+            git commit -m "Updated deployment image to ${{ env.IMAGE_TAG }}"
+            git push origin main
+          fi
+
+      # ✅ 14. Trigger ArgoCD Sync
+      - name: Trigger ArgoCD Sync
+        run: |
+          curl -X POST "https://argocd.example.com/api/v1/applications/springboot-app/sync" \
+            -H "Authorization: Bearer ${{ secrets.ARGOCD_AUTH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
