@@ -94,6 +94,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
         run: |
+          git config --global user.name "Ajay Pulapa"
+          git config --global user.email "ajaypulapa@gmail.com"
           git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git
           git add k8s-manifests/deployment.yaml
           if git diff --cached --quiet; then
