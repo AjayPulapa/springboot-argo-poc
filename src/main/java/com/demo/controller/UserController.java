@@ -47,7 +47,7 @@ public class UserController {
                 "</style>" +
                 "</head>" +
                 "<body>" +
-                "<h1>Application Deployed in an ArgoCD Container</h1>" +
+                "<h1>Application Deployed in an ArgoCD Container Running Now</h1>" +
                 "</body>" +
                 "</html>";
     }
