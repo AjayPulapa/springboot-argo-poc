@@ -17,56 +17,18 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # ✅ 2. Debug - List All Files Before Processing
-      - name: Debug - List All Files Before Processing
-        run: ls -R
-
-      # ✅ 3. Verify if `deployment.yaml` exists
-      - name: Debug - Check if deployment.yaml Exists
-        run: |
-          if [ -f "k8s-manifests/deployment.yaml" ]; then
-            echo "✅ deployment.yaml found."
-          else
-            echo "❌ deployment.yaml NOT found!"
-            exit 1
-          fi
-
-      # ✅ 4. Print deployment.yaml BEFORE modification
-      - name: Debug - Print deployment.yaml Before Update
-        run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
-
-      # ✅ 5. Set up JDK 17 for Maven build
-      - name: Set Up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      # ✅ 6. Build the Spring Boot application JAR
-      - name: Build Spring Boot JAR
-        run: mvn clean install -DskipTests
-
-      # ✅ 7. Log in to Azure
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      # ✅ 8. Log in to Azure Container Registry (ACR)
-      - name: Log in to ACR
-        run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
-
-      # ✅ 9. Generate a unique image tag (Timestamp + Commit SHA)
-      - name: Set IMAGE_TAG
+      # ✅ 2. Set IMAGE_TAG (Shorter, 6 characters + commit SHA)
+      - name: Generate Short Unique IMAGE_TAG
         run: echo "IMAGE_TAG=$(shuf -zer -n6 {A..Z} {a..z} {0..9} | tr -d '\0')-$(echo ${{ github.sha }} | cut -c1-4)" >> $GITHUB_ENV
 
-      # ✅ 10. Build and Push Docker Image
+      # ✅ 3. Build and Push Docker Image
       - name: Build and Push Docker Image
         run: |
+          echo "🚀 Using IMAGE_TAG: ${{ env.IMAGE_TAG }}"
           docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }} .
           docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}
 
-      # ✅ 11. Update Kubernetes deployment.yaml with the new image tag
+      # ✅ 4. Update Kubernetes deployment.yaml with the new image tag
       - name: Update deployment.yaml with new image tag
         run: |
           echo "✅ Checking if deployment.yaml exists..."
@@ -88,11 +50,7 @@ jobs:
             exit 1
           fi
 
-      # ✅ 12. Print deployment.yaml AFTER modification
-      - name: Debug - Print deployment.yaml After Update
-        run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
-
-      # ✅ 13. Ensure Git Detects the Change & Commit
+      # ✅ 5. Commit and Push Changes
       - name: Commit and Push Changes
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
@@ -108,10 +66,31 @@ jobs:
             git push origin main
           fi
 
-      # ✅ 14. Trigger ArgoCD Sync
+      # ✅ 6. Set up Kubernetes CLI (kubectl)
+      - name: Set up kubectl
+        run: |
+          az aks install-cli
+          az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_AKS_CLUSTER }} --overwrite-existing
+
+      # ✅ 7. Apply Kubernetes manifests to sync changes to ArgoCD
+      - name: Apply Kubernetes Manifests
+        run: |
+          echo "🚀 Applying manifests to AKS..."
+          kubectl apply -f k8s-manifests/ -n springboot
+          echo "✅ Manifests applied successfully."
+
+      # ✅ 8. Get Kubernetes service details (Optional)
+      - name: Get Service Details
+        run: |
+          echo "🔍 Checking service status in springboot namespace..."
+          kubectl get svc -n springboot
+
+      # ✅ 9. Trigger ArgoCD Sync
       - name: Trigger ArgoCD Sync
         run: |
+          echo "🚀 Triggering ArgoCD sync..."
           curl -X POST "https://argocd.example.com/api/v1/applications/springboot-app/sync" \
             -H "Authorization: Bearer ${{ secrets.ARGOCD_AUTH_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{}'
+          echo "✅ ArgoCD sync triggered successfully."
