@@ -9,6 +9,9 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write  # ✅ Grants write access for pushing changes
+
     steps:
       # ✅ 1. Checkout the repository
       - name: Checkout Repository
@@ -53,9 +56,9 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
 
-      # ✅ 9. Generate a unique image tag
+      # ✅ 9. Generate a unique image tag (Timestamp + Commit SHA)
       - name: Set IMAGE_TAG
-        run: echo "IMAGE_TAG=$(date +%s)" >> $GITHUB_ENV
+        run: echo "IMAGE_TAG=$(date +%s)-${{ github.sha }}" >> $GITHUB_ENV
 
       # ✅ 10. Build and Push Docker Image
       - name: Build and Push Docker Image
@@ -73,40 +76,10 @@ jobs:
             echo "🔍 Before Update:"
             cat k8s-manifests/deployment.yaml
             
-            # Apply sed to update the image tag
-            sed -i "s|image: .*.azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/deployment.yaml
+            # Apply sed to update the image tag (Ensures correct YAML syntax)
+            sed -i "s|image: .*azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/deployment.yaml
             
             echo "🔍 After Update:"
             cat k8s-manifests/deployment.yaml
             
-            echo "✅ Successfully updated deployment.yaml"
-          else
-            echo "❌ deployment.yaml NOT found. Exiting..."
-            exit 1
-          fi
-
-      # ✅ 12. Print deployment.yaml AFTER modification
-      - name: Debug - Print deployment.yaml After Update
-        run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
-
-      # ✅ 13. Ensure Git Detects the Change & Commit
-      - name: Commit and Push Changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
-        run: |
-          git config --global user.name "Ajay Pulapa"
-          git config --global user.email "ajaypulapa@gmail.com"
-          git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git
-          git add k8s-manifests/deployment.yaml
-          if git diff --cached --quiet; then
-            echo "⚠️ No changes detected in deployment.yaml. Skipping commit."
-          else
-            git commit -m "Updated deployment image to ${{ env.IMAGE_TAG }}"
-            git push origin main
-          fi
-
-      # ✅ 14. Trigger ArgoCD Sync
-      - name: Trigger ArgoCD Sync
-        run: |
-          curl -X POST http://argocd-server.<namespace>:8080/api/v1/applications/springboot-app/sync \
-            -H "Authorization: Bearer ${{ secrets.ARGOCD_AUTH_TOKEN }}"
+            echo "✅ Successfully updated deployment.
