@@ -124,22 +124,6 @@ jobs:
           echo "🔍 Checking service status in springboot namespace..."
           kubectl get svc -n springboot
 
-      # ✅ NEW STEP: Extract External IP and replace in cronjobfive.yaml
-      - name: Update cronjobfive.yaml with External IP
-        run: |
-          echo "🌐 Fetching External IP..."
-          EXTERNAL_IP=$(kubectl get svc springboot-service -n springboot -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
-          echo "Spring Boot External IP: $EXTERNAL_IP"
-
-
-          if [ -z "$EXTERNAL_IP" ]; then
-            echo "❌ External IP not available yet. Try again later."
-            exit 1
-          fi
-
-          echo "✅ Found External IP: $EXTERNAL_IP"
-          sed -i "s|http://.*\.*/users/cronten|http://$EXTERNAL_IP/users/cronten|g" k8s-manifests/cronjobfive.yaml
-
       # ✅ OPTIONAL: Commit the updated cronjobfive.yaml with new IP
       - name: Commit Updated cronjobfive.yaml with External IP
         env:
