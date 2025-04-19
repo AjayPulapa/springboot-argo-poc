@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: springboot
-        image: kubernetspoccron.azurecr.io/springboot-argo:Wl4FCP-7d54
+        image: kubernetspoccron.azurecr.io/springboot-argo:6m436d-6c3f
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
