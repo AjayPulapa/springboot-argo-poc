@@ -31,68 +31,86 @@ jobs:
             exit 1
           fi
 
-      # ✅ 4. Print deployment.yaml BEFORE modification
+      # ✅ 4. Verify if `cronjobfive.yaml` exists
+      - name: Debug - Check if cronjobfive.yaml Exists
+        run: |
+          if [ -f "k8s-manifests/cronjobfive.yaml" ]; then
+            echo "✅ cronjobfive.yaml found."
+          else
+            echo "❌ cronjobfive.yaml NOT found!"
+            exit 1
+          fi
+
+      # ✅ 5. Print deployment.yaml BEFORE modification
       - name: Debug - Print deployment.yaml Before Update
         run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
 
-      # ✅ 5. Set up JDK 17 for Maven build
+      # ✅ 6. Print cronjobfive.yaml BEFORE modification
+      - name: Debug - Print cronjobfive.yaml Before Update
+        run: cat k8s-manifests/cronjobfive.yaml || echo "❌ cronjobfive.yaml does not exist!"
+
+      # ✅ 7. Set up JDK 17 for Maven build
       - name: Set Up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # ✅ 6. Build the Spring Boot application JAR
+      # ✅ 8. Build the Spring Boot application JAR
       - name: Build Spring Boot JAR
         run: mvn clean install -DskipTests
 
-      # ✅ 7. Log in to Azure
+      # ✅ 9. Log in to Azure
       - name: Log in to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # ✅ 8. Log in to Azure Container Registry (ACR)
+      # ✅ 10. Log in to Azure Container Registry (ACR)
       - name: Log in to ACR
         run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
 
-      # ✅ 9. Generate a unique image tag (Timestamp + Commit SHA)
+      # ✅ 11. Generate a unique image tag (Timestamp + Commit SHA)
       - name: Set IMAGE_TAG
         run: echo "IMAGE_TAG=$(shuf -zer -n6 {A..Z} {a..z} {0..9} | tr -d '\0')-$(echo ${{ github.sha }} | cut -c1-4)" >> $GITHUB_ENV
 
-      # ✅ 10. Build and Push Docker Image
+      # ✅ 12. Build and Push Docker Image
       - name: Build and Push Docker Image
         run: |
           docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }} .
           docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}
 
-      # ✅ 11. Update Kubernetes deployment.yaml with the new image tag
+      # ✅ 13. Update deployment.yaml with the new image tag
       - name: Update deployment.yaml with new image tag
         run: |
           echo "✅ Checking if deployment.yaml exists..."
           if [ -f "k8s-manifests/deployment.yaml" ]; then
             echo "✅ deployment.yaml found. Updating image tag..."
             
-            echo "🔍 Before Update:"
-            cat k8s-manifests/deployment.yaml
-            
             # Apply sed to update the image tag (Ensures correct YAML syntax)
             sed -i "s|image: .*azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/deployment.yaml
-            
-            echo "🔍 After Update:"
-            cat k8s-manifests/deployment.yaml
-            
-            echo "✅ Successfully updated deployment."
+            echo "✅ Successfully updated deployment.yaml."
           else
             echo "❌ deployment.yaml NOT found. Exiting..."
             exit 1
           fi
 
-      # ✅ 12. Print deployment.yaml AFTER modification
-      - name: Debug - Print deployment.yaml After Update
-        run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
+      # ✅ 14. Update cronjobfive.yaml with the new image tag
+      - name: Update cronjobfive.yaml with new image tag
+        run: |
+          echo "✅ Checking if cronjobfive.yaml exists..."
+          if [ -f "k8s-manifests/cronjobfive.yaml" ]; then
+            echo "✅ cronjobfive.yaml found. Updating image tag..."
+            
+            # Apply sed to update the image tag (Ensures correct YAML syntax)
+            sed -i "s|image: .*azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/cronjobfive.yaml
+            echo "✅ Successfully updated cronjobfive.yaml."
+          else
+            echo "❌ cronjobfive.yaml NOT found. Exiting..."
+            exit 1
+          fi
 
-      # ✅ 13. Ensure Git Detects the Change & Commit
+      # ✅ 15. Commit and push the updated files (deployment.yaml, cronjobfive.yaml)
       - name: Commit and Push Changes
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
@@ -100,22 +118,22 @@ jobs:
           git config --global user.name "Ajay Pulapa"
           git config --global user.email "ajaypulapa@gmail.com"
           git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
-          git add k8s-manifests/deployment.yaml
+          git add k8s-manifests/deployment.yaml k8s-manifests/cronjobfive.yaml
           if git diff --cached --quiet; then
-            echo "⚠️ No changes detected in deployment.yaml. Skipping commit."
+            echo "⚠️ No changes detected in deployment.yaml or cronjobfive.yaml. Skipping commit."
           else
-            git commit -m "Updated deployment image to ${{ env.IMAGE_TAG }}"
+            git commit -m "Updated deployment and cronjob image to ${{ env.IMAGE_TAG }}"
             git push origin main
           fi
 
-      # ✅ 14. Set up Kubernetes CLI (kubectl)
+      # ✅ 16. Set up Kubernetes CLI (kubectl)
       - name: Set up kubectl
         run: |
           az aks install-cli
           az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_AKS_CLUSTER }} --overwrite-existing
 
-      # ✅ 15. Clone or Pull Latest Changes & Apply Kubernetes manifests (ONLY IF CHANGES ARE MADE)
-      - name: Clone or Pull Latest Changes & Apply Manifests
+      # ✅ 17. Apply Kubernetes manifests (Only if changes are made)
+      - name: Apply Kubernetes Manifests
         run: |
           echo "🚀 Checking for latest Kubernetes manifests..."
           
@@ -142,7 +160,7 @@ jobs:
             echo "🔹 IMAGE_TAG used for deployment: ${{ env.IMAGE_TAG }}"
           fi
 
-      # ✅ 16. Get Kubernetes service details (Optional)
+      # ✅ 18. Get Kubernetes service details (Optional)
       - name: Get Service Details
         run: |
           echo "🔍 Checking service status in springboot namespace..."
