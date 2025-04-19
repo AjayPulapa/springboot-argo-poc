@@ -17,7 +17,6 @@ spec:
                 - "curl"
                 - "http://72.152.40.37/users/cronten"  # Replace with your Spring Boot service endpoint
               imagePullPolicy: Always
-          restartPolicy: OnFailure
 
 ---
 apiVersion: batch/v1
@@ -39,4 +38,3 @@ spec:
                 - "curl"
                 - "http://72.152.40.37/users/cronfive"  # Replace with your Spring Boot service endpoint
               imagePullPolicy: Always
-          restartPolicy: OnFailure
