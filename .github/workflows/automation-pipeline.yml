@@ -3,25 +3,22 @@ name: CI/CD Pipeline - Build and Deploy Spring Boot to AKS
 on:
   push:
     branches:
-      - main  # Runs when changes are pushed to main
+      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write  # ✅ Grants write access for pushing changes
+      contents: write
 
     steps:
-      # ✅ 1. Checkout the repository
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # ✅ 2. Debug - List All Files Before Processing
       - name: Debug - List All Files Before Processing
         run: ls -R
 
-      # ✅ 3. Verify if `deployment.yaml` exists
       - name: Debug - Check if deployment.yaml Exists
         run: |
           if [ -f "k8s-manifests/deployment.yaml" ]; then
@@ -31,7 +28,6 @@ jobs:
             exit 1
           fi
 
-      # ✅ 4. Verify if `cronjobfive.yaml` exists
       - name: Debug - Check if cronjobfive.yaml Exists
         run: |
           if [ -f "k8s-manifests/cronjobfive.yaml" ]; then
@@ -41,76 +37,49 @@ jobs:
             exit 1
           fi
 
-      # ✅ 5. Print deployment.yaml BEFORE modification
       - name: Debug - Print deployment.yaml Before Update
         run: cat k8s-manifests/deployment.yaml || echo "❌ deployment.yaml does not exist!"
 
-      # ✅ 6. Print cronjobfive.yaml BEFORE modification
       - name: Debug - Print cronjobfive.yaml Before Update
         run: cat k8s-manifests/cronjobfive.yaml || echo "❌ cronjobfive.yaml does not exist!"
 
-      # ✅ 7. Set up JDK 17 for Maven build
       - name: Set Up JDK 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # ✅ 8. Build the Spring Boot application JAR
       - name: Build Spring Boot JAR
         run: mvn clean install -DskipTests
 
-      # ✅ 9. Log in to Azure
       - name: Log in to Azure
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # ✅ 10. Log in to Azure Container Registry (ACR)
       - name: Log in to ACR
         run: az acr login --name ${{ secrets.AZURE_CONTAINER_REGISTRY }}
 
-      # ✅ 11. Generate a unique image tag (Timestamp + Commit SHA)
       - name: Set IMAGE_TAG
         run: echo "IMAGE_TAG=$(shuf -zer -n6 {A..Z} {a..z} {0..9} | tr -d '\0')-$(echo ${{ github.sha }} | cut -c1-4)" >> $GITHUB_ENV
 
-      # ✅ 12. Build and Push Docker Image
       - name: Build and Push Docker Image
         run: |
           docker build -t ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }} .
           docker push ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}
 
-      # ✅ 13. Update deployment.yaml with the new image tag
       - name: Update deployment.yaml with new image tag
         run: |
-          echo "✅ Checking if deployment.yaml exists..."
           if [ -f "k8s-manifests/deployment.yaml" ]; then
-            echo "✅ deployment.yaml found. Updating image tag..."
-            
-            # Apply sed to update the image tag (Ensures correct YAML syntax)
             sed -i "s|image: .*azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/deployment.yaml
-            echo "✅ Successfully updated deployment.yaml."
-          else
-            echo "❌ deployment.yaml NOT found. Exiting..."
-            exit 1
           fi
 
-      # ✅ 14. Update cronjobfive.yaml with the new image tag
       - name: Update cronjobfive.yaml with new image tag
         run: |
-          echo "✅ Checking if cronjobfive.yaml exists..."
           if [ -f "k8s-manifests/cronjobfive.yaml" ]; then
-            echo "✅ cronjobfive.yaml found. Updating image tag..."
-            
-            # Apply sed to update the image tag (Ensures correct YAML syntax)
             sed -i "s|image: .*azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/cronjobfive.yaml
-            echo "✅ Successfully updated cronjobfive.yaml."
-          else
-            echo "❌ cronjobfive.yaml NOT found. Exiting..."
-            exit 1
           fi
 
-      # ✅ 15. Commit and push the updated files (deployment.yaml, cronjobfive.yaml)
       - name: Commit and Push Changes
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
@@ -120,48 +89,66 @@ jobs:
           git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
           git add k8s-manifests/deployment.yaml k8s-manifests/cronjobfive.yaml
           if git diff --cached --quiet; then
-            echo "⚠️ No changes detected in deployment.yaml or cronjobfive.yaml. Skipping commit."
+            echo "⚠️ No changes to commit."
           else
             git commit -m "Updated deployment and cronjob image to ${{ env.IMAGE_TAG }}"
             git push origin main
           fi
 
-      # ✅ 16. Set up Kubernetes CLI (kubectl)
       - name: Set up kubectl
         run: |
           az aks install-cli
           az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_AKS_CLUSTER }} --overwrite-existing
 
-      # ✅ 17. Apply Kubernetes manifests (Only if changes are made)
       - name: Apply Kubernetes Manifests
         run: |
-          echo "🚀 Checking for latest Kubernetes manifests..."
-          
           REPO_DIR="/home/runner/work/${{ github.repository }}/${{ github.repository }}"
-
           if [ -d "$REPO_DIR" ]; then
-            echo "✅ Repository already exists. Pulling latest changes..."
             cd "$REPO_DIR"
             git fetch origin main
             git reset --hard origin/main
           else
-            echo "🚀 Repository not found. Cloning..."
             git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git "$REPO_DIR"
             cd "$REPO_DIR"
           fi
 
-          # Check if any files in `k8s-manifests/` have changed
           if git diff --quiet HEAD~1 -- k8s-manifests/; then
-            echo "⚠️ No changes detected in Kubernetes manifests. Skipping apply."
+            echo "⚠️ No changes detected in Kubernetes manifests."
           else
-            echo "✅ Changes detected. Applying Kubernetes manifests..."
             kubectl get namespace springboot || kubectl create namespace springboot
             kubectl apply -f k8s-manifests/ -n springboot
-            echo "🔹 IMAGE_TAG used for deployment: ${{ env.IMAGE_TAG }}"
           fi
 
-      # ✅ 18. Get Kubernetes service details (Optional)
       - name: Get Service Details
         run: |
           echo "🔍 Checking service status in springboot namespace..."
           kubectl get svc -n springboot
+
+      # ✅ NEW STEP: Extract External IP and replace in cronjobfive.yaml
+      - name: Update cronjobfive.yaml with External IP
+        run: |
+          echo "🌐 Fetching External IP..."
+          EXTERNAL_IP=$(kubectl get svc -n springboot -o jsonpath="{.items[0].status.loadBalancer.ingress[0].ip}")
+
+          if [ -z "$EXTERNAL_IP" ]; then
+            echo "❌ External IP not available yet. Try again later."
+            exit 1
+          fi
+
+          echo "✅ Found External IP: $EXTERNAL_IP"
+          sed -i "s|http://.*\.*/users/cronten|http://$EXTERNAL_IP/users/cronten|g" k8s-manifests/cronjobfive.yaml
+
+      # ✅ OPTIONAL: Commit the updated cronjobfive.yaml with new IP
+      - name: Commit Updated cronjobfive.yaml with External IP
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git config --global user.name "Ajay Pulapa"
+          git config --global user.email "ajaypulapa@gmail.com"
+          git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
+          git add k8s-manifests/cronjobfive.yaml
+          if git diff --cached --quiet; then
+            echo "⚠️ No IP changes to commit."
+          else
+            git commit -m "🔁 Updated cronjobfive.yaml with External IP: $EXTERNAL_IP"
+            git push origin main
