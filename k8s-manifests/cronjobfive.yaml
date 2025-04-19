@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
             - name: springboot-email-10m
-              image: kubernetspoccron.azurecr.io/springboot-argo:7LpWEk-ecab
+              image: kubernetspoccron.azurecr.io/springboot-argo:hSo1hi-4132
               args:
                 - "curl"
                 - "http://72.152.40.37/users/cronten"  # Replace with your Spring Boot service endpoint
@@ -45,7 +45,7 @@ spec:
         spec:
           containers:
             - name: springboot-email-5m
-              image: kubernetspoccron.azurecr.io/springboot-argo:7LpWEk-ecab
+              image: kubernetspoccron.azurecr.io/springboot-argo:hSo1hi-4132
               args:
                 - "curl"
                 - "http://72.152.40.37/users/cronfive"  # Replace with your Spring Boot service endpoint
