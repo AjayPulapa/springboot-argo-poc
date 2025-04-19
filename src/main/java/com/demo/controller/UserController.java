@@ -102,12 +102,28 @@ public class UserController {
 
 
 
-	@Scheduled(cron = "0 */5 * * * *") // Every 5 minutes
-	public String sendEmail() {
+//	@Scheduled(cron = "0 */5 * * * *") // Every 5 minutes
+    @GetMapping("/cronfive")
+	public String sendEmail5min() {
 //		if (jobPod()) {
 			SimpleMailMessage message = new SimpleMailMessage();
 			message.setTo("ajayajaypulapa143@gmail.com");
-			message.setSubject("Spring Boot Application Running in Now");
+			message.setSubject("Spring Boot Application Running For Every 5min");
+			message.setText("Hello, your Spring Boot application is running successfully.");
+			mailSender.send(message);
+			log.info("Email sent successfully.");
+			return "Email sent successfully.";
+//		} else {
+//			return "Batch Not Scheduled";
+//		}
+
+	}
+	@GetMapping("/cronten")
+	public String sendEmail10min() {
+//		if (jobPod()) {
+			SimpleMailMessage message = new SimpleMailMessage();
+			message.setTo("ajayajaypulapa143@gmail.com");
+			message.setSubject("Spring Boot Application Running For Every 10min");
 			message.setText("Hello, your Spring Boot application is running successfully.");
 			mailSender.send(message);
 			log.info("Email sent successfully.");
