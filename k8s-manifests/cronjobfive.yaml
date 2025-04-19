@@ -14,9 +14,7 @@ spec:
           containers:
             - name: springboot-email-10m
               image: kubernetspoccron.azurecr.io/springboot-argo:OVVTUI-2977
-              args:
-                - "curl"
-                - "http://128.203.173.154/users/cronten"  # Replace with your Spring Boot service endpoint
+              command: ["curl", "http://128.203.173.154/users/cronten"]
               imagePullPolicy: Always
               env:
                 - name: SPRING_DATASOURCE_URL
@@ -50,9 +48,7 @@ spec:
           containers:
             - name: springboot-email-5m
               image: kubernetspoccron.azurecr.io/springboot-argo:OVVTUI-2977
-              args:
-                - "curl"
-                - "http://128.203.173.154/users/cronfive"  # Replace with your Spring Boot service endpoint
+              command: ["curl", "http://128.203.173.154/users/cronten"]
               imagePullPolicy: Always
               env:
                 - name: SPRING_DATASOURCE_URL
