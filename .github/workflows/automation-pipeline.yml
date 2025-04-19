@@ -137,6 +137,7 @@ jobs:
             echo "⚠️ No changes detected in Kubernetes manifests. Skipping apply."
           else
             echo "✅ Changes detected. Applying Kubernetes manifests..."
+            kubectl create namespace springboot
             kubectl apply -f k8s-manifests/ -n springboot
             echo "🔹 IMAGE_TAG used for deployment: ${{ env.IMAGE_TAG }}"
           fi
