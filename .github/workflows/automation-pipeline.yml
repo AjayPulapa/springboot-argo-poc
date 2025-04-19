@@ -3,7 +3,7 @@ name: CI/CD Pipeline - Build and Deploy Spring Boot to AKS
 on:
   push:
     branches:
-      - main
+      - mains
 
 jobs:
   build-and-deploy:
@@ -74,11 +74,11 @@ jobs:
             sed -i "s|image: .*azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/deployment.yaml
           fi
 
-      - name: Update cronjobfive.yaml with new image tag
-        run: |
-          if [ -f "k8s-manifests/cronjobfive.yaml" ]; then
-            sed -i "s|image: .*azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/cronjobfive.yaml
-          fi
+      # - name: Update cronjobfive.yaml with new image tag
+      #   run: |
+      #     if [ -f "k8s-manifests/cronjobfive.yaml" ]; then
+      #       sed -i "s|image: .*azurecr.io/springboot-argo:.*|image: ${{ secrets.AZURE_CONTAINER_REGISTRY }}.azurecr.io/springboot-argo:${{ env.IMAGE_TAG }}|g" k8s-manifests/cronjobfive.yaml
+      #     fi
 
       - name: Commit and Push Changes
         env:
