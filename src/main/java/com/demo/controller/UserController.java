@@ -2,9 +2,14 @@ package com.demo.controller;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +25,9 @@ import com.demo.service.UserService;
 @RestController
 @RequestMapping("/users")
 public class UserController {
+	
+	private final static Logger log = LoggerFactory.getLogger(UserController.class);
+
 
     @Autowired
     private UserService userService;
@@ -85,4 +93,28 @@ public class UserController {
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
+    
+    @Autowired
+	private JavaMailSender mailSender;
+
+//	@Autowired
+//	private ShedlockRepository shedlockRepository;
+
+
+
+	@Scheduled(cron = "0 */5 * * * *") // Every 5 minutes
+	public String sendEmail() {
+//		if (jobPod()) {
+			SimpleMailMessage message = new SimpleMailMessage();
+			message.setTo("ajayajaypulapa143@gmail.com");
+			message.setSubject("Spring Boot Application Running in Now");
+			message.setText("Hello, your Spring Boot application is running successfully.");
+			mailSender.send(message);
+			log.info("Email sent successfully.");
+			return "Email sent successfully.";
+//		} else {
+//			return "Batch Not Scheduled";
+//		}
+
+	}
 }
