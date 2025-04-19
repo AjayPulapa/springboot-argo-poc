@@ -12,7 +12,7 @@ spec:
         spec:
           containers:
             - name: springboot-email-10m
-              image: kubernetspoccron.azurecr.io/springboot-argo:${IMAGE_TAG}  # Use the dynamic IMAGE_TAG
+              image: kubernetspoccron.azurecr.io/springboot-argo:bwWouJ-e505
               args:
                 - "curl"
                 - "http://72.152.40.37/users/cronten"  # Replace with your Spring Boot service endpoint
@@ -34,7 +34,7 @@ spec:
         spec:
           containers:
             - name: springboot-email-5m
-              image: kubernetspoccron.azurecr.io/springboot-argo:${IMAGE_TAG}  # Use the dynamic IMAGE_TAG
+              image: kubernetspoccron.azurecr.io/springboot-argo:bwWouJ-e505
               args:
                 - "curl"
                 - "http://72.152.40.37/users/cronfive"  # Replace with your Spring Boot service endpoint
