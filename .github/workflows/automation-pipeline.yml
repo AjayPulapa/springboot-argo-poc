@@ -123,18 +123,3 @@ jobs:
         run: |
           echo "🔍 Checking service status in springboot namespace..."
           kubectl get svc -n springboot
-
-      # ✅ OPTIONAL: Commit the updated cronjobfive.yaml with new IP
-      - name: Commit Updated cronjobfive.yaml with External IP
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          git config --global user.name "Ajay Pulapa"
-          git config --global user.email "ajaypulapa@gmail.com"
-          git remote set-url origin https://x-access-token:$GH_PAT@github.com/${{ github.repository }}.git
-          git add k8s-manifests/cronjobfive.yaml
-          if git diff --cached --quiet; then
-            echo "⚠️ No IP changes to commit."
-          else
-            git commit -m "🔁 Updated cronjobfive.yaml with External IP: $EXTERNAL_IP"
-            git push origin main
