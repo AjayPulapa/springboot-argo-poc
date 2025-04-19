@@ -13,7 +13,7 @@ spec:
         spec:
           containers:
             - name: springboot-email-10m
-              image: kubernetspoccron.azurecr.io/springboot-argo:0VTECT-75e4
+              image: curlimages/curl:latest
               command: ["curl", "http://128.203.173.154/users/cronten"]
               imagePullPolicy: Always
               env:
@@ -47,7 +47,7 @@ spec:
         spec:
           containers:
             - name: springboot-email-5m
-              image: kubernetspoccron.azurecr.io/springboot-argo:0VTECT-75e4
+              image: curlimages/curl:latest
               command: ["curl", "http://128.203.173.154/users/cronten"]
               imagePullPolicy: Always
               env:
