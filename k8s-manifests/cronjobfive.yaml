@@ -48,7 +48,7 @@ spec:
           containers:
             - name: springboot-email-5m
               image: curlimages/curl:latest
-              command: ["curl", "http://128.203.173.154/users/cronten"]
+              command: ["curl", "http://128.203.173.154/users/cronfive"]
               imagePullPolicy: Always
               env:
                 - name: SPRING_DATASOURCE_URL
